@@ -17,6 +17,7 @@ char* USAGE = "Usage: valid options are --threads and --iterations. Default valu
 long long value = 0;
 int num_iters = 1;
 int num_threads = 1;
+int opt_yield = 0;
 struct timespec ts;
 
 void err_exit(char* err) {
@@ -26,6 +27,9 @@ void err_exit(char* err) {
 
 void add(long long *pointer, long long value) {
     long long sum = *pointer + value;
+    if (opt_yield) {
+        sched_yield();
+    }
     *pointer = sum;
 }
 
@@ -39,6 +43,7 @@ int main(int argc, char * argv[]) {
     struct option longopts[] = {
         { "iterations", optional_argument, NULL, 'i' },
         { "threads",    optional_argument, NULL, 't' },
+        { "yield",      no_argument,       NULL, 'y' },
         { 0, 0, 0, 0 }
     };
     int c;
@@ -50,6 +55,9 @@ int main(int argc, char * argv[]) {
                 break;
             case 't':
                 num_threads = atoi(optarg);
+                break;
+            case 'y':
+                opt_yield = 1;
                 break;
             case '?':
                 err_exit(USAGE);
@@ -90,5 +98,10 @@ void test_add_none() {
             pthread_join(thread_ids[j], NULL);
         }
     }
-    print_results("add-none", start_time);
+    if (opt_yield) {
+        print_results("add-yield-none", start_time);
+    } else {
+        print_results("add-none", start_time);
+    }
+    
 }
