@@ -32,6 +32,9 @@ void add(long long *pointer, long long value) {
 void *thread_func(void *vargp);
 void print_results(char* testname, struct timespec start_time);
 
+/* tests */
+void test_add_none(void);
+
 int main(int argc, char * argv[]) {
     struct option longopts[] = {
         { "iterations", optional_argument, NULL, 'i' },
@@ -53,19 +56,9 @@ int main(int argc, char * argv[]) {
                 break;
         }
     }
-    pthread_t thread_ids[num_threads];
-    int i, j;
-    struct timespec start_time;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
-    for (i = 0; i < num_iters; i++) {
-        for (j = 0; j < num_threads; j++) {
-            pthread_create(&thread_ids[j], NULL, thread_func, (void *) &value);
-        }
-        for (j = 0; j < num_threads; j++) {
-            pthread_join(thread_ids[j], NULL);
-        }
-    }
-    print_results("add-none", start_time);
+    
+    test_add_none();
+
     return 0;
 }
 
@@ -82,4 +75,20 @@ void print_results(char* testname, struct timespec start_time) {
     long total_runtime = cur_ts.tv_nsec - start_time.tv_nsec;
     long avg_operation_time = total_runtime / num_operations;
     printf("%s,%d,%d,%ld,%ld,%ld,%lld\n", testname, num_threads, num_iters, num_operations, total_runtime, avg_operation_time, value);
+}
+
+void test_add_none() {
+    pthread_t thread_ids[num_threads];
+    int i, j;
+    struct timespec start_time;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
+    for (i = 0; i < num_iters; i++) {
+        for (j = 0; j < num_threads; j++) {
+            pthread_create(&thread_ids[j], NULL, thread_func, (void *) &value);
+        }
+        for (j = 0; j < num_threads; j++) {
+            pthread_join(thread_ids[j], NULL);
+        }
+    }
+    print_results("add-none", start_time);
 }
