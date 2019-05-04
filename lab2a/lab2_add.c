@@ -14,12 +14,13 @@
 #include <time.h>
 
 char* USAGE = "Usage: valid options are --threads and --iterations. Default values are 0\n";
-long long value = 0;
+long long counter = 0;
 int num_iters = 1;
 int num_threads = 1;
 int opt_yield = 0;
 struct timespec ts;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER; // statically initialize a mutex
+
 volatile int spinlock = 0;
 
 void err_exit(char* err) {
@@ -140,7 +141,7 @@ void print_results(char* testname, struct timespec start_time) {
     long total_runtime = (cur_ts.tv_sec - start_time.tv_sec) * 1000000000
                          + cur_ts.tv_nsec - start_time.tv_nsec; // in nano seconds
     long avg_operation_time = total_runtime / num_operations;
-    printf("%s,%d,%d,%ld,%ld,%ld,%lld\n", testname, num_threads, num_iters, num_operations, total_runtime, avg_operation_time, value);
+    printf("%s,%d,%d,%ld,%ld,%ld,%lld\n", testname, num_threads, num_iters, num_operations, total_runtime, avg_operation_time, counter);
 }
 
 // test_option should be one of "none", "m", "s", and "c".
@@ -150,7 +151,7 @@ void test(char* test_option, void* (thread_func)(void*)) {
     struct timespec start_time;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
     for (i = 0; i < num_threads; i++) {
-        pthread_create(&thread_ids[i], NULL, thread_func, (void *) &value);
+        pthread_create(&thread_ids[i], NULL, thread_func, (void *) &counter);
     }
     for (i = 0; i < num_threads; i++) {
         pthread_join(thread_ids[i], NULL);
@@ -193,14 +194,14 @@ void add_s(long long *pointer, long long value) {
 }
 // atomic operation
 void add_c(long long *pointer, long long value) {
-    long long oldsum = __sync_val_compare_and_swap(pointer, 0, 0);
-    long long newsum = oldsum + value;
-    if (opt_yield) {
-        sched_yield();
-    }
-    while (__sync_val_compare_and_swap(pointer, oldsum, newsum) != oldsum) {
-        /* loop until before-operation value in pointer is oldsum */
-    }
+    long long oldsum, newsum;
+    do {
+        oldsum = __sync_val_compare_and_swap(pointer, 0, 0);
+        newsum = oldsum + value;
+        if (opt_yield) {
+            sched_yield();
+        }
+    } while(__sync_val_compare_and_swap(pointer, oldsum, newsum) != oldsum);
 }
 
 // spin lock implementation
