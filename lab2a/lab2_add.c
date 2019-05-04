@@ -27,17 +27,22 @@ void err_exit(char* err) {
     exit(1);
 }
 
-void add(long long *pointer, long long value);
+void add_none(long long *pointer, long long value);
 void add_m(long long *pointer, long long value);
 void add_s(long long *pointer, long long value);
 void add_c(long long *pointer, long long value);
 
 void acquire_spin_lock(void);
-void *thread_func(void *vargp);
+
+/* thread functions */
+void *thread_func_none(void *vargp);
+void *thread_func_c(void *vargp);
+void *thread_func_s(void *vargp);
+void *thread_func_m(void *vargp);
+
 void print_results(char* testname, struct timespec start_time);
 
-/* tests */
-void test_add_none(void);
+void test(char* testname, void* (thread_func)(void*));
 
 int main(int argc, char * argv[]) {
     struct option longopts[] = {
@@ -68,16 +73,43 @@ int main(int argc, char * argv[]) {
         }
     }
     
-    test_add_none();
+    test("none", thread_func_none);
 
     return 0;
 }
 
-void *thread_func(void *vargp) {
+void *thread_func_none(void *vargp) {
     int i;
     for (i = 0; i < num_iters; i++) {
-        add((long long *) vargp, 1);
-        add((long long *) vargp, -1);
+        add_none((long long *) vargp, 1);
+        add_none((long long *) vargp, -1);
+    }
+    return NULL;
+}
+
+void *thread_func_m(void *vargp) {
+    int i;
+    for (i = 0; i < num_iters; i++) {
+        add_m((long long *) vargp, 1);
+        add_m((long long *) vargp, -1);
+    }
+    return NULL;
+}
+
+void *thread_func_s(void *vargp) {
+    int i;
+    for (i = 0; i < num_iters; i++) {
+        add_s((long long *) vargp, 1);
+        add_s((long long *) vargp, -1);
+    }
+    return NULL;
+}
+
+void *thread_func_c(void *vargp) {
+    int i;
+    for (i = 0; i < num_iters; i++) {
+        add_c((long long *) vargp, 1);
+        add_c((long long *) vargp, -1);
     }
     return NULL;
 }
@@ -92,7 +124,8 @@ void print_results(char* testname, struct timespec start_time) {
     printf("%s,%d,%d,%ld,%ld,%ld,%lld\n", testname, num_threads, num_iters, num_operations, total_runtime, avg_operation_time, value);
 }
 
-void test_add_none() {
+// test_option should be one of "none", "m", "s", and "c".
+void test(char* test_option, void* (thread_func)(void*)) {
     pthread_t thread_ids[num_threads];
     int i;
     struct timespec start_time;
@@ -103,14 +136,16 @@ void test_add_none() {
     for (i = 0; i < num_threads; i++) {
         pthread_join(thread_ids[i], NULL);
     }
+    char testname[100];
     if (opt_yield) {
-        print_results("add-yield-none", start_time);
+        sprintf(testname, "add-yield-%s", test_option);
     } else {
-        print_results("add-none", start_time);
+        sprintf(testname, "add-%s", test_option);
     }
+    print_results(testname, start_time);
 }
 
-void add(long long *pointer, long long value) {
+void add_none(long long *pointer, long long value) {
     long long sum = *pointer + value;
     if (opt_yield) {
         sched_yield();
