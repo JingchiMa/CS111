@@ -19,20 +19,20 @@ int num_iters = 1;
 int num_threads = 1;
 int opt_yield = 0;
 struct timespec ts;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER; // statically initialize a mutex
+volatile int spinlock = 0;
 
 void err_exit(char* err) {
     perror(err);
     exit(1);
 }
 
-void add(long long *pointer, long long value) {
-    long long sum = *pointer + value;
-    if (opt_yield) {
-        sched_yield();
-    }
-    *pointer = sum;
-}
+void add(long long *pointer, long long value);
+void add_m(long long *pointer, long long value);
+void add_s(long long *pointer, long long value);
+void add_c(long long *pointer, long long value);
 
+void acquire_spin_lock(void);
 void *thread_func(void *vargp);
 void print_results(char* testname, struct timespec start_time);
 
@@ -43,6 +43,9 @@ int main(int argc, char * argv[]) {
     struct option longopts[] = {
         { "iterations", optional_argument, NULL, 'i' },
         { "threads",    optional_argument, NULL, 't' },
+        { "yield",      no_argument,       NULL, 'y' },
+        { "yield",      no_argument,       NULL, 'y' },
+        { "yield",      no_argument,       NULL, 'y' },
         { "yield",      no_argument,       NULL, 'y' },
         { 0, 0, 0, 0 }
     };
@@ -71,8 +74,11 @@ int main(int argc, char * argv[]) {
 }
 
 void *thread_func(void *vargp) {
-    add((long long *) vargp, 1);
-    add((long long *) vargp, -1);
+    int i;
+    for (i = 0; i < num_iters; i++) {
+        add((long long *) vargp, 1);
+        add((long long *) vargp, -1);
+    }
     return NULL;
 }
 
@@ -80,28 +86,74 @@ void print_results(char* testname, struct timespec start_time) {
     long num_operations = num_threads * num_iters * 2;
     struct timespec cur_ts;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cur_ts);
-    long total_runtime = cur_ts.tv_nsec - start_time.tv_nsec;
+    long total_runtime = (cur_ts.tv_sec - start_time.tv_sec) * 1000000000
+                         + cur_ts.tv_nsec - start_time.tv_nsec; // in nano seconds
     long avg_operation_time = total_runtime / num_operations;
     printf("%s,%d,%d,%ld,%ld,%ld,%lld\n", testname, num_threads, num_iters, num_operations, total_runtime, avg_operation_time, value);
 }
 
 void test_add_none() {
     pthread_t thread_ids[num_threads];
-    int i, j;
+    int i;
     struct timespec start_time;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
-    for (i = 0; i < num_iters; i++) {
-        for (j = 0; j < num_threads; j++) {
-            pthread_create(&thread_ids[j], NULL, thread_func, (void *) &value);
-        }
-        for (j = 0; j < num_threads; j++) {
-            pthread_join(thread_ids[j], NULL);
-        }
+    for (i = 0; i < num_threads; i++) {
+        pthread_create(&thread_ids[i], NULL, thread_func, (void *) &value);
+    }
+    for (i = 0; i < num_threads; i++) {
+        pthread_join(thread_ids[i], NULL);
     }
     if (opt_yield) {
         print_results("add-yield-none", start_time);
     } else {
         print_results("add-none", start_time);
     }
-    
 }
+
+void add(long long *pointer, long long value) {
+    long long sum = *pointer + value;
+    if (opt_yield) {
+        sched_yield();
+    }
+    *pointer = sum;
+}
+// mutex
+void add_m(long long *pointer, long long value) {
+    pthread_mutex_lock(&lock);
+    long long sum = *pointer + value;
+    if (opt_yield) {
+        sched_yield();
+    }
+    *pointer = sum;
+    pthread_mutex_unlock(&lock);
+}
+// spin lock
+void add_s(long long *pointer, long long value) {
+    acquire_spin_lock();
+    long long sum = *pointer + value;
+    if (opt_yield) {
+        sched_yield();
+    }
+    *pointer = sum;
+    __sync_lock_release(&spinlock);
+}
+// atomic operation
+void add_c(long long *pointer, long long value) {
+    long long oldsum = __sync_val_compare_and_swap(pointer, 0, 0);
+    long long newsum = oldsum + value;
+    if (opt_yield) {
+        sched_yield();
+    }
+    while (__sync_val_compare_and_swap(pointer, oldsum, newsum) != oldsum) {
+        /* loop until before-operation value in pointer is oldsum */
+    }
+}
+
+// spin lock implementation
+void acquire_spin_lock() {
+    while (__sync_lock_test_and_set(&spinlock, 1)) {
+        while (spinlock);
+    }
+}
+
+
