@@ -43,7 +43,7 @@ void *thread_func_m(void *vargp);
 
 void print_results(char* testname, struct timespec start_time);
 
-void test(char* testname, void* (thread_func)(void*));
+int test(char* testname, void* (thread_func)(void*));
 
 int main(int argc, char * argv[]) {
     struct option longopts[] = {
@@ -54,7 +54,7 @@ int main(int argc, char * argv[]) {
         { 0, 0, 0, 0 }
     };
     int c;
-    char sync = 0;
+    char sync_flag = 0;
     while ((c = getopt_long(argc, argv, "i:t:ys:", longopts, NULL)) != -1) {
         switch(c) {
             case 'i':
@@ -67,35 +67,39 @@ int main(int argc, char * argv[]) {
                 opt_yield = 1;
                 break;
             case 's':
-                sync = optarg[0];
+                sync_flag = optarg[0];
                 break;
             case '?':
                 err_exit(USAGE);
                 break;
         }
     }
-    if (sync) {
+    void* (*thread_func)(void*); // thread routine
+    int return_code = 0;
+    if (sync_flag) {
         char sync_option[2];
-        sync_option[0] = sync;
+        sync_option[0] = sync_flag;
         sync_option[1] = '\0';
-        switch(sync) {
+        
+        switch(sync_flag) {
             case 'm':
-                test(sync_option, thread_func_m);
+                thread_func = &thread_func_m;
                 break;
             case 's':
-                test(sync_option, thread_func_s);
+                thread_func = &thread_func_s;
                 break;
             case 'c':
-                test(sync_option, thread_func_c);
+                thread_func = &thread_func_c;
                 break;
             default:
                 err_exit("invalid sync option, only m, s, and c are allowed");
+                return 1;
         }
+        return_code = test(sync_option, thread_func);
     } else {
-        test("none", thread_func_none);
+        return_code = test("none", thread_func_none);
     }
-
-    return 0;
+    return return_code;
 }
 
 void *thread_func_none(void *vargp) {
@@ -145,7 +149,8 @@ void print_results(char* testname, struct timespec start_time) {
 }
 
 // test_option should be one of "none", "m", "s", and "c".
-void test(char* test_option, void* (thread_func)(void*)) {
+// returns 2 if there is synchronization problem (i.e. counter != 0), 0 otherwise
+int test(char* test_option, void* (thread_func)(void*)) {
     pthread_t thread_ids[num_threads];
     int i;
     struct timespec start_time;
@@ -163,6 +168,11 @@ void test(char* test_option, void* (thread_func)(void*)) {
         sprintf(testname, "add-%s", test_option);
     }
     print_results(testname, start_time);
+    if (counter == 0) {
+        return 0;
+    } else {
+        return 2;
+    }
 }
 
 void add_none(long long *pointer, long long value) {
