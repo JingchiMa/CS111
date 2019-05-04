@@ -74,15 +74,18 @@ int main(int argc, char * argv[]) {
         }
     }
     if (sync) {
+        char sync_option[2];
+        sync_option[0] = sync;
+        sync_option[1] = '\0';
         switch(sync) {
             case 'm':
-                test(&sync, thread_func_m);
+                test(sync_option, thread_func_m);
                 break;
             case 's':
-                test(&sync, thread_func_s);
+                test(sync_option, thread_func_s);
                 break;
             case 'c':
-                test(&sync, thread_func_c);
+                test(sync_option, thread_func_c);
                 break;
             default:
                 err_exit("invalid sync option, only m, s, and c are allowed");
