@@ -46,17 +46,15 @@ void test(char* testname, void* (thread_func)(void*));
 
 int main(int argc, char * argv[]) {
     struct option longopts[] = {
-        { "iterations", optional_argument, NULL, 'i' },
-        { "threads",    optional_argument, NULL, 't' },
+        { "iterations", required_argument, NULL, 'i' },
+        { "threads",    required_argument, NULL, 't' },
         { "yield",      no_argument,       NULL, 'y' },
-        { "yield",      no_argument,       NULL, 'y' },
-        { "yield",      no_argument,       NULL, 'y' },
-        { "yield",      no_argument,       NULL, 'y' },
+        { "sync",       required_argument, NULL, 's' },
         { 0, 0, 0, 0 }
     };
     int c;
-
-    while ((c = getopt_long(argc, argv, "i:t:", longopts, NULL)) != -1) {
+    char sync = 0;
+    while ((c = getopt_long(argc, argv, "i:t:ys:", longopts, NULL)) != -1) {
         switch(c) {
             case 'i':
                 num_iters = atoi(optarg);
@@ -67,13 +65,31 @@ int main(int argc, char * argv[]) {
             case 'y':
                 opt_yield = 1;
                 break;
+            case 's':
+                sync = optarg[0];
+                break;
             case '?':
                 err_exit(USAGE);
                 break;
         }
     }
-    
-    test("none", thread_func_none);
+    if (sync) {
+        switch(sync) {
+            case 'm':
+                test(&sync, thread_func_m);
+                break;
+            case 's':
+                test(&sync, thread_func_s);
+                break;
+            case 'c':
+                test(&sync, thread_func_c);
+                break;
+            default:
+                err_exit("invalid sync option, only m, s, and c are allowed");
+        }
+    } else {
+        test("none", thread_func_none);
+    }
 
     return 0;
 }
