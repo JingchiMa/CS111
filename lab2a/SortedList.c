@@ -88,6 +88,7 @@ void print_sortedList(SortedList_t *list) {
 }
 
 int main(int argc, char * argv[]) {
+    opt_yield = 0;
     SortedListElement_t dummy;
     dummy.key = NULL;
     SortedList_t *list = &dummy;
