@@ -5,7 +5,7 @@
 //
 //  Created by Jingchi Ma on 5/4/19.
 //  Copyright © 2019 Jingchi Ma. All rights reserved.
-//
+// gcc lab2_list.c SortedList.c -lpthread -lrt
 
 #include <stdio.h>
 #include <stdlib.h>

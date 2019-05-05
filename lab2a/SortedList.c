@@ -95,7 +95,7 @@ void print_sortedList(SortedList_t *list) {
     printf("\n");
 }
 
-int test() {
+int unit_test() {
     SortedListElement_t dummy;
     dummy.key = NULL;
     dummy.prev = NULL; // have to set to NULL
