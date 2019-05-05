@@ -12,13 +12,15 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <string.h>
+#include <signal.h>
 #include "SortedList.h"
 
-char* USAGE = "Usage: valid options are --threads and --iterations. Default values are 0\n";
-long long counter     = 0;
-int       num_iters   = 1;
-int       num_threads = 1;
-int       opt_yield   = 0;
+char* USAGE = "Usage: valid options are --threads and --iterations. Default values are 1\n";
+long long    counter     = 0;
+int          num_iters   = 1;
+int          num_threads = 1;
+int          opt_yield   = 0;
+volatile int err_flag    = 0; // set to 1 if there's sync error in some thread
 
 struct timespec ts;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER; // statically initialize a mutex
@@ -28,12 +30,18 @@ void err_exit(char* err) {
     perror(err);
     exit(1);
 }
+void sync_err_exit(char* err) {
+    fprintf(stderr, "%s\n", err);
+    exit(2);
+}
+void segfault_handler(int signum);
 void set_opt_yield(char *yield_option);
 void *thread_func(void * vargs);
 void print_results(char* testname, struct timespec start_time);
 void test(void);
 
 int main(int argc, char * argv[]) {
+    signal(SIGSEGV, segfault_handler);
     struct option longopts[] = {
         { "iterations", required_argument, NULL, 'i' },
         { "threads",    required_argument, NULL, 't' },
@@ -86,8 +94,6 @@ void test(void) {
             }
         }
     }
-    
-    
     /* prepare and start threads */
     pthread_t thread_ids[num_threads];
     struct timespec start_time;
@@ -101,15 +107,27 @@ void test(void) {
             pthread_join(thread_ids[i], NULL);
         }
     }
+    /* check the final length */
     int len = SortedList_length(list);
-    fprintf(stderr, "len is %d\n", len);
-    print_results("list-none-none", start_time);
+    if (len != 0) {
+        sync_err_exit("Sync Error: List length is not 0");
+    } else if (err_flag == 1) {
+        /* error occurs in some threads */
+        exit(2);
+    } else {
+        print_results("list-none-none", start_time);
+    }
 }
 
 // pass in the address of the array (i.e. address of the first SortedListElement pointer)
 void *thread_func(void *vargs) {
+    /* if err_flag has been set, directly return */
+    if (__sync_val_compare_and_swap(&err_flag, 0, 0) == 1) {
+        return NULL;
+    }
     int i;
     SortedListElement_t **nodeptr_loc = (SortedListElement_t **) vargs;
+    
     /* insert the elements */
     for (i = 0; i < num_iters; i++) {
         SortedList_insert(list, *nodeptr_loc);
@@ -118,11 +136,22 @@ void *thread_func(void *vargs) {
     
     /* get the length */
     int len = SortedList_length(list);
-    
+    if (len == -1) {
+        /* error found when checking length */
+        fprintf(stderr, "Sync Error: List length < 0\n");
+        __sync_val_compare_and_swap(&err_flag, 0, 1);
+        return NULL;
+    }
     /* remove them all */
     nodeptr_loc = (SortedListElement_t **) vargs;
     for (i = 0; i < num_iters; i++) {
         SortedListElement_t *cur = SortedList_lookup(list, (*nodeptr_loc)->key);
+        if (cur == NULL) {
+            /* error: cannot find the inserted key */
+            fprintf(stderr, "Sync Error: Cannot find key %s which was inserted\n", (*nodeptr_loc)->key);
+            __sync_val_compare_and_swap(&err_flag, 0, 1);
+            return NULL;
+        }
         SortedList_delete(cur);
         nodeptr_loc++;
     }
@@ -130,7 +159,7 @@ void *thread_func(void *vargs) {
 }
 
 void set_opt_yield(char *yield_option) {
-    while (yield_option != '\0') {
+    while (*yield_option != '\0') {
         switch (*yield_option) {
             case 'i':
                 opt_yield |= INSERT_YIELD;
@@ -153,4 +182,10 @@ void print_results(char* testname, struct timespec start_time) {
                          + cur_ts.tv_nsec - start_time.tv_nsec; // in nano seconds
     long avg_operation_time = total_runtime / num_operations;
     printf("%s,%d,%d,%d,%ld,%ld,%ld\n", testname, num_threads, num_iters, num_lists, num_operations, total_runtime, avg_operation_time);
+}
+void segfault_handler(int signum) {
+    if (signum == SIGSEGV) {
+        fprintf(stderr, "segmentation fault\n");
+        exit(2);
+    }
 }
