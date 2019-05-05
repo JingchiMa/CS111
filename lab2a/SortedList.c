@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int opt_yield = 0;
 
@@ -26,7 +27,9 @@ void SortedList_insert(SortedList_t *list, SortedListElement_t *element) {
     prev->next = element;
     element->prev = prev;
     element->next = cur;
-    cur->prev = element;
+    if (cur != NULL) {
+        cur->prev = element;
+    }
 }
 
 int SortedList_delete(SortedListElement_t *element) {
@@ -64,7 +67,7 @@ SortedListElement_t *SortedList_lookup(SortedList_t *list, const char *key) {
 
 int SortedList_length(SortedList_t *list) {
     int len = 0;
-    SortedListElement_t *cur = list;
+    SortedListElement_t *cur = list->next;
     while (cur != NULL) {
         if (cur->prev->next != cur) {
             return -1;
@@ -89,16 +92,26 @@ void print_sortedList(SortedList_t *list) {
     printf("\n");
 }
 
-int main(int argc, char * argv[]) {
+int test() {
     SortedListElement_t dummy;
     dummy.key = NULL;
+    dummy.prev = NULL; // have to set to NULL
+    dummy.next = NULL; // have to set to NULL
     SortedList_t *list = &dummy;
     char *strings[] = {"good", "bad", "int", "hey!"};
     int i;
     for (i = 0; i < 4; i++) {
-        SortedListElement_t node;
-        node.key = strings[i];
-        SortedList_insert(list, &node);
+        SortedListElement_t *node = (SortedListElement_t *) malloc(sizeof(SortedListElement_t));
+        node->key = strings[i];
+        SortedList_insert(list, node);
+    }
+    printf("List length is %d\n", SortedList_length(list));
+    for (i = 0; i < 4; i++) {
+        SortedListElement_t *node = SortedList_lookup(list, strings[i]);
+        if (node == NULL) {
+            printf("ERROR! %s is not found in list\n", node->key);
+        }
+        SortedList_delete(node);
     }
     print_sortedList(list);
     return 0;
