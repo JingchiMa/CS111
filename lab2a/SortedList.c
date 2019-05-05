@@ -11,6 +11,8 @@
 #include <string.h>
 #include <stdio.h>
 
+int opt_yield = 0;
+
 void SortedList_insert(SortedList_t *list, SortedListElement_t *element) {
     SortedListElement_t *prev = list; // header is dummy header
     SortedListElement_t *cur = list->next;
@@ -88,7 +90,6 @@ void print_sortedList(SortedList_t *list) {
 }
 
 int main(int argc, char * argv[]) {
-    opt_yield = 0;
     SortedListElement_t dummy;
     dummy.key = NULL;
     SortedList_t *list = &dummy;
