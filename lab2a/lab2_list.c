@@ -138,7 +138,6 @@ void set_opt_yield(char *yield_option) {
         }
     }
 }
-
 void print_results(char* testname, struct timespec start_time) {
     int num_lists = 1;
     long num_operations = num_threads * num_iters * 3;
