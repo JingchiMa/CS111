@@ -107,13 +107,14 @@ void test(void) {
             pthread_join(thread_ids[i], NULL);
         }
     }
+    if (err_flag == 1) {
+        /* error occurs in some threads */
+        exit(2);
+    }
     /* check the final length */
     int len = SortedList_length(list);
     if (len != 0) {
         sync_err_exit("Sync Error: List length is not 0");
-    } else if (err_flag == 1) {
-        /* error occurs in some threads */
-        exit(2);
     } else {
         print_results("list-none-none", start_time);
     }
