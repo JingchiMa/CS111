@@ -79,9 +79,14 @@ void test(void) {
         for (i = 0; i < num_threads; i++) {
             for (j = 0; j < num_iters; j++) {
                 nodes[i][j] = (SortedListElement_t *) malloc(sizeof(SortedListElement_t));
+                // Need to make sure buffer is large enough, see https://stackoverflow.com/a/8257728/8159477 for more info.
+                char* key = malloc(10 * sizeof(char)); // also needs to create a buffer for each node!
+                sprintf(key, "%d", j);
+                nodes[i][j]->key = key;
             }
         }
     }
+    
     
     /* prepare and start threads */
     pthread_t thread_ids[num_threads];
@@ -90,7 +95,7 @@ void test(void) {
     {
         int i;
         for (i = 0; i < num_threads; i++) {
-            pthread_create(&thread_ids[i], NULL, thread_func, (void *) nodes);
+            pthread_create(&thread_ids[i], NULL, thread_func, (void *) &nodes[i][0]);
         }
         for (i = 0; i < num_threads; i++) {
             pthread_join(thread_ids[i], NULL);
@@ -108,7 +113,7 @@ void *thread_func(void *vargs) {
     /* insert the elements */
     for (i = 0; i < num_iters; i++) {
         SortedList_insert(list, *nodeptr_loc);
-        nodeptr_loc += sizeof(SortedListElement_t *);
+        nodeptr_loc++;
     }
     
     /* get the length */
@@ -119,7 +124,7 @@ void *thread_func(void *vargs) {
     for (i = 0; i < num_iters; i++) {
         SortedListElement_t *cur = SortedList_lookup(list, (*nodeptr_loc)->key);
         SortedList_delete(cur);
-        nodeptr_loc += sizeof(SortedListElement_t *);
+        nodeptr_loc++;
     }
     return NULL;
 }
