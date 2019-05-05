@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int opt_yield = 0;
+int opt_yield;
 
 void SortedList_insert(SortedList_t *list, SortedListElement_t *element) {
     SortedListElement_t *prev = list; // header is dummy header
@@ -52,6 +52,9 @@ int SortedList_delete(SortedListElement_t *element) {
 SortedListElement_t *SortedList_lookup(SortedList_t *list, const char *key) {
     int res;
     SortedListElement_t *cur = list->next;
+    if (opt_yield & LOOKUP_YIELD) {
+        sched_yield();
+    }
     while (cur != NULL) {
         res = strcmp(cur->key, key);
         if (res == 0) {
