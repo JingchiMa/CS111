@@ -20,6 +20,11 @@ void SortedList_insert(SortedList_t *list, SortedListElement_t *element) {
     while (cur != NULL && strcmp(cur->key, element->key) < 0) {
         prev = prev->next;
         cur = cur->next;
+        if (strcmp(prev->key, element->key) > 0) {
+            /* synchronization problem */
+            fprintf(stderr, "Sync Error: sorted list out of order\n");
+            exit(2);
+        }
     }
     if (opt_yield & INSERT_YIELD) {
         sched_yield();
