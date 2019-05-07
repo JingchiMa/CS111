@@ -18,7 +18,7 @@ OBJECTS_1 = $(patsubst %.c, %.o, $(SOURCES_1))
 OBJECTS_2 = $(patsubst %.c, %.o, $(SOURCES_2))
 HEADERS = $(wildcard *.h)
 
-DISTFILES = $(wildcard *.c) $(HEADERS)  Makefile README
+DISTFILES = $(wildcard *.c) $(HEADERS)  Makefile README lab2_add.gp lab2_list.gp
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -35,7 +35,7 @@ tests:
 
 graphs:
 	./lab2_add.gp 
-
+	./lab2_list.gp
 clean: 
 	-rm -f *.o
 	-rm -f $(TARGET_1)
