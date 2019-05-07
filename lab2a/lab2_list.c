@@ -20,10 +20,12 @@ long long    counter     = 0;
 int          num_iters   = 1;
 int          num_threads = 1;
 int          opt_yield   = 0;
-volatile int err_flag    = 0; // set to 1 if there's sync error in some thread
+char         sync_flag   = 0;
+extern volatile int err_flag; // set to 1 if there's sync error in some thread
 
 struct timespec ts;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER; // statically initialize a mutex
+volatile int spinlock = 0;
 SortedList_t *list;
 
 void err_exit(char* err) {
@@ -40,6 +42,10 @@ void *thread_func(void * vargs);
 void print_results(char* testname, struct timespec start_time);
 void test(void);
 
+void get_lock(void);
+void release_lock(void);
+void acquire_spin_lock(void);
+
 int main(int argc, char * argv[]) {
     signal(SIGSEGV, segfault_handler);
     struct option longopts[] = {
@@ -50,7 +56,6 @@ int main(int argc, char * argv[]) {
         { 0, 0, 0, 0 }
     };
     int c;
-    char sync_flag = 0;
     while ((c = getopt_long(argc, argv, "i:t:ys:", longopts, NULL)) != -1) {
         switch(c) {
             case 'i':
@@ -74,6 +79,7 @@ int main(int argc, char * argv[]) {
 }
 
 void test(void) {
+    err_flag = 0;
     /* init list */
     list = (SortedList_t *) malloc(sizeof(SortedList_t));
     list->key = NULL;
@@ -133,12 +139,16 @@ void *thread_func(void *vargs) {
     
     /* insert the elements */
     for (i = 0; i < num_iters; i++) {
+        get_lock();
         SortedList_insert(list, *nodeptr_loc);
+        release_lock();
         nodeptr_loc++;
     }
     
     /* get the length */
+    // get_lock();
     int len = SortedList_length(list);
+    // release_lock();
     if (len == -1) {
         /* error found when checking length */
         fprintf(stderr, "Sync Error: List length < 0\n");
@@ -148,14 +158,18 @@ void *thread_func(void *vargs) {
     /* remove them all */
     nodeptr_loc = (SortedListElement_t **) vargs;
     for (i = 0; i < num_iters; i++) {
+        get_lock();
         SortedListElement_t *cur = SortedList_lookup(list, (*nodeptr_loc)->key);
+        release_lock();
         if (cur == NULL) {
             /* error: cannot find the inserted key */
             fprintf(stderr, "Sync Error: Cannot find key %s which was inserted\n", (*nodeptr_loc)->key);
             __sync_val_compare_and_swap(&err_flag, 0, 1);
             return NULL;
         }
+        get_lock();
         SortedList_delete(cur);
+        release_lock();
         nodeptr_loc++;
     }
     return NULL;
@@ -174,6 +188,7 @@ void set_opt_yield(char *yield_option) {
                 opt_yield |= LOOKUP_YIELD;
                 break;
         }
+        yield_option++;
     }
 }
 void print_results(char* testname, struct timespec start_time) {
@@ -190,5 +205,34 @@ void segfault_handler(int signum) {
     if (signum == SIGSEGV) {
         fprintf(stderr, "segmentation fault\n");
         exit(2);
+    }
+}
+void acquire_spin_lock() {
+    while (__sync_lock_test_and_set(&spinlock, 1)) {
+        while (spinlock);
+    }
+}
+
+// setup lock based on sync_flag. May not get a real lock.
+// must call release_lock
+void get_lock() {
+    switch(sync_flag) {
+        case 's':
+            /* spin lock */
+            acquire_spin_lock();
+            break;
+        case 'm':
+            pthread_mutex_lock(&lock);
+            break;
+    }
+}
+void release_lock() {
+    switch(sync_flag) {
+        case 's':
+            __sync_lock_release(&spinlock);
+            break;
+        case 'm':
+            pthread_mutex_unlock(&lock);
+            break;
     }
 }

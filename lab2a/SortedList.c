@@ -13,6 +13,7 @@
 #include <stdlib.h>
 
 int opt_yield;
+volatile int err_flag;
 
 void SortedList_insert(SortedList_t *list, SortedListElement_t *element) {
     SortedListElement_t *prev = list; // header is dummy header
@@ -23,7 +24,8 @@ void SortedList_insert(SortedList_t *list, SortedListElement_t *element) {
         if (strcmp(prev->key, element->key) > 0) {
             /* synchronization problem */
             fprintf(stderr, "Sync Error: sorted list out of order\n");
-            exit(2);
+            __sync_val_compare_and_swap(&err_flag, 0, 1);
+            return;
         }
     }
     if (opt_yield & INSERT_YIELD) {
