@@ -24,6 +24,7 @@ int          num_threads = 1;
 int          opt_yield   = 0;
 char         sync_flag   = 0;
 extern volatile int err_flag; // set to 1 if there's sync error in some thread
+char*        yield_option = "none";
 
 struct timespec ts;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER; // statically initialize a mutex
@@ -67,6 +68,7 @@ int main(int argc, char * argv[]) {
                 num_threads = atoi(optarg);
                 break;
             case 'y':
+                yield_option = optarg;
                 set_opt_yield(optarg);
                 break;
             case 's':
@@ -130,7 +132,13 @@ void test(void) {
     if (len != 0) {
         sync_err_exit("Sync Error: List length is not 0");
     } else {
-        print_results("list-none-none", start_time);
+        char testname[100];
+        if (sync_flag == 0) {
+            sprintf(testname, "list-%s-%s", yield_option, "none");
+        } else {
+            sprintf(testname, "list-%s-%c", yield_option, sync_flag);
+        }
+        print_results(testname, start_time);
     }
 }
 
@@ -241,4 +249,7 @@ void release_lock() {
             pthread_mutex_unlock(&lock);
             break;
     }
+}
+void get_testname(char testname[100], char *yield_option, char *sync_option) {
+    sprintf(testname, "list-%s-%s", yield_option, sync_option);
 }
