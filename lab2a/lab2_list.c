@@ -81,7 +81,7 @@ void test(void) {
     list->next = NULL;
     
     /* prepare list elements */
-    SortedListElement_t *nodes[num_threads][num_iters];
+    SortedListElement_t *(*nodes)[num_iters] = malloc(sizeof(SortedListElement_t*[num_threads][num_iters]));
     {
         int i, j;
         for (i = 0; i < num_threads; i++) {
@@ -89,8 +89,10 @@ void test(void) {
                 nodes[i][j] = (SortedListElement_t *) malloc(sizeof(SortedListElement_t));
                 // Need to make sure buffer is large enough, see https://stackoverflow.com/a/8257728/8159477 for more info.
                 char* key = malloc(10 * sizeof(char)); // also needs to create a buffer for each node!
-                sprintf(key, "%d", j);
+                sprintf(key, "%d-%d", i, j);
                 nodes[i][j]->key = key;
+                nodes[i][j]->prev = NULL;
+                nodes[i][j]->next = NULL;
             }
         }
     }
