@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
+#include <fcntl.h>
 
 char* USAGE = "Usage: valid options are --threads and --iterations. Default values are 0\n";
 long long counter = 0;
@@ -74,6 +75,10 @@ int main(int argc, char * argv[]) {
                 break;
         }
     }
+    /* IO redirection */
+    int csv = open("add.csv", O_CREAT | O_WRONLY);
+    dup2(csv, 1); // redirec stdout to the csv file
+    
     void* (*thread_func)(void*); // thread routine
     int return_code = 0;
     if (sync_flag) {

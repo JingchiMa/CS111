@@ -13,6 +13,8 @@
 #include <pthread.h>
 #include <string.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "SortedList.h"
 
 char* USAGE = "Usage: valid options are --threads and --iterations. Default values are 1\n";
@@ -75,6 +77,10 @@ int main(int argc, char * argv[]) {
                 break;
         }
     }
+    /* IO redirection */
+    int csv = open("list.csv", O_CREAT | O_WRONLY);
+    dup2(csv, 1); // redirec stdout to the csv file
+    
     test();
 }
 
