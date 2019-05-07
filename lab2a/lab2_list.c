@@ -78,7 +78,7 @@ int main(int argc, char * argv[]) {
         }
     }
     /* IO redirection */
-    int csv = open("list.csv", O_CREAT | O_WRONLY);
+    int csv = open("lab2_list.csv", O_CREAT | O_WRONLY | O_APPEND);
     dup2(csv, 1); // redirec stdout to the csv file
     
     test();
