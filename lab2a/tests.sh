@@ -70,6 +70,6 @@ do
     ./"$FILE_ADD" --iterations="$iterations" --threads="$thread"
     ./"$FILE_ADD" --iterations="$iterations" --threads="$thread" --sync=m
     ./"$FILE_ADD" --iterations="$iterations" --threads="$thread" --sync=c
-    ./"$FILE_ADD" --iterations="$spin_iterations" --threads="$thread" --sync=s
+    ./"$FILE_ADD" --iterations="$iterations" --threads="$thread" --sync=s
 done
 
