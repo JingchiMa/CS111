@@ -5,7 +5,7 @@
 TARGET_1 = lab2a-add
 TARGET_2 = lab2a-list
 CC = gcc
-CFLAGS = -g -Wall -Wextra
+CFLAGS = -g -Wall -Wextra -lpthread -lrt
 
 .PHONY: clean all default
 
@@ -29,11 +29,19 @@ $(TARGET_1): $(OBJECTS_1)
 $(TARGET_2): $(OBJECTS_2)
 	$(CC) $(CFLAGS) $(OBJECTS_2) -o $@
 
+tests:
+	chmod +x tests.sh
+	./tests.sh
+
+graphs:
+	./lab2_add.gp lab2_add.csv
+
 clean: 
 	-rm -f *.o
 	-rm -f $(TARGET_1)
 	-rm -f $(TARGET_2)
 	-rm -f *.tar.gz
+	-rm -f *.png
 
 dist:
 	tar cvzf lab2a-705027270.tar.gz $(DISTFILES)
