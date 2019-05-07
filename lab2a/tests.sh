@@ -22,7 +22,7 @@ for i in "${iterations[@]}"
 do
     for thread in $(seq 1 $MAX_THREAD)
     do
-        ./"$FILE_ADD" --iterations="$i" --threads="$thread"
+        ./"$FILE_ADD" --iterations="$i" --threads="$thread" >> "$LOG_FILE_ADD"
     done
 done
 
@@ -33,7 +33,7 @@ for i in "${iterations[@]}"
 do
     for thread in "${threads[@]}"
     do
-        ./"$FILE_ADD" --iterations="$i" --threads="$thread" --yield
+        ./"$FILE_ADD" --iterations="$i" --threads="$thread" --yield >> "$LOG_FILE_ADD"
     done
 done
 
@@ -45,8 +45,8 @@ for i in "${iterations[@]}"
     do
     for thread in "${threads[@]}"
     do
-        ./"$FILE_ADD" --iterations="$i" --threads="$thread"
-        ./"$FILE_ADD" --iterations="$i" --threads="$thread" --yield
+        ./"$FILE_ADD" --iterations="$i" --threads="$thread" >> "$LOG_FILE_ADD"
+        ./"$FILE_ADD" --iterations="$i" --threads="$thread" --yield >> "$LOG_FILE_ADD"
     done
 done
 
@@ -56,9 +56,9 @@ iteration=10000
 spin_iteration=1000
 for thread in "${threads[@]}"
 do
-    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" --sync=m --yield
-    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" --sync=c --yield
-    ./"$FILE_ADD" --iterations="$spin_iteration" --threads="$thread" --sync=s --yield
+    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" --sync=m --yield >> "$LOG_FILE_ADD"
+    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" --sync=c --yield >> "$LOG_FILE_ADD"
+    ./"$FILE_ADD" --iterations="$spin_iteration" --threads="$thread" --sync=s --yield >> "$LOG_FILE_ADD"
 done
 
 # large enough number of iterations to overcome issue raised in question 2.1.3
@@ -67,10 +67,10 @@ threads=(2 4 8 12)
 iteration=10000
 for thread in "${threads[@]}"
 do
-    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread"
-    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" --sync=m
-    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" --sync=c
-    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" --sync=s
+    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" >> "$LOG_FILE_ADD"
+    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" --sync=m >> "$LOG_FILE_ADD"
+    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" --sync=c >> "$LOG_FILE_ADD"
+    ./"$FILE_ADD" --iterations="$iteration" --threads="$thread" --sync=s >> "$LOG_FILE_ADD"
 done
 
 echo 'running tests for lab2a-list'
@@ -80,7 +80,7 @@ thread=1
 iterations=(10 100 1000 10000 20000)
 for i in "${iterations[@]}"
 do
-    ./"$FILE_LIST" --iterations="$i" --threads="$thread"
+    ./"$FILE_LIST" --iterations="$i" --threads="$thread" >> "$LOG_FILE_LIST"
 done
 
 ## run program to see how many threads and iterations it takes to demonstrate a problem consistently
@@ -90,7 +90,7 @@ for i in "${iterations[@]}"
 do
     for thread in "${threads[@]}"
     do
-        ./"$FILE_LIST" --iterations="$i" --threads="$thread"
+        ./"$FILE_LIST" --iterations="$i" --threads="$thread" >> "$LOG_FILE_LIST"
     done
 done
 
@@ -104,7 +104,7 @@ for i in "${iterations[@]}"
     do
         for yield in "${yields[@]}"
         do
-            ./"$FILE_LIST" --iterations="$i" --threads="$thread" --yield="$yield"
+            ./"$FILE_LIST" --iterations="$i" --threads="$thread" --yield="$yield" >> "$LOG_FILE_LIST"
         done
     done
 done
@@ -121,8 +121,8 @@ do
     do
         for sync in "${syncs[@]}"
         do
-        ./"$FILE_LIST" --iterations="$iteration" --threads="$thread" --yield="$yield"
-        ./"$FILE_LIST" --iterations="$iteration" --threads="$thread" --yield="$yield" --sync="$sync"
+        ./"$FILE_LIST" --iterations="$iteration" --threads="$thread" --yield="$yield" >> "$LOG_FILE_LIST"
+        ./"$FILE_LIST" --iterations="$iteration" --threads="$thread" --yield="$yield" --sync="$sync" >> "$LOG_FILE_LIST"
         done
     done
 done
@@ -136,7 +136,7 @@ for thread in "${threads[@]}"
 do
     for sync in "${syncs[@]}"
     do
-        ./"$FILE_LIST" --iterations="$iteration" --threads="$thread" --sync="$sync"
+        ./"$FILE_LIST" --iterations="$iteration" --threads="$thread" --sync="$sync" >> "$LOG_FILE_LIST"
     done
 done
 
