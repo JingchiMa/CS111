@@ -1,5 +1,5 @@
-FILE_ADD=lab2a-add
-FILE_LIST=lab2a-list
+FILE_ADD=lab2_add
+FILE_LIST=lab2_list
 LOG_FILE_ADD=lab2_add.csv
 LOG_FILE_LIST=lab2_list.csv
 

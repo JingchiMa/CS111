@@ -2,8 +2,8 @@
 ## EMAIL:majc@g.ucla.edu
 ## ID:705027270
 
-TARGET_1 = lab2a-add
-TARGET_2 = lab2a-list
+TARGET_1 = lab2_add
+TARGET_2 = lab2_list
 CC = gcc
 CFLAGS = -g -Wall -Wextra -lpthread -lrt
 
@@ -18,7 +18,7 @@ OBJECTS_1 = $(patsubst %.c, %.o, $(SOURCES_1))
 OBJECTS_2 = $(patsubst %.c, %.o, $(SOURCES_2))
 HEADERS = $(wildcard *.h)
 
-DISTFILES = $(wildcard *.c) $(HEADERS)  Makefile README lab2_add.gp lab2_list.gp
+DISTFILES = $(wildcard *.c) $(HEADERS)  Makefile README lab2_add.gp lab2_list.gp $(wildcard *.png)
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
