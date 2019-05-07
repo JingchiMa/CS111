@@ -33,7 +33,7 @@ for i in "${iterations[@]}"
 do 
     for thread in "${threads[@]}";
     do 
-        ./"$FILE_ADD" --iterations="$i" --threads="$thread"
+        ./"$FILE_ADD" --iterations="$i" --threads="$thread" --yield
     done
 done
 

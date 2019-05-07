@@ -76,7 +76,7 @@ int main(int argc, char * argv[]) {
         }
     }
     /* IO redirection */
-    int csv = open("lab2_add.csv", O_CREAT | O_WRONLY | O_APPEND);
+    int csv = open("lab2_add.csv", O_CREAT | O_RDWR | O_APPEND, 0644);
     dup2(csv, 1); // redirec stdout to the csv file
     
     void* (*thread_func)(void*); // thread routine
