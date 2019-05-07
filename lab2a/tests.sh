@@ -37,6 +37,19 @@ do
     done
 done
 
+# average execution time of yield and unyield
+threads=(2 8)
+iterations=(100 1000 10000 10000)
+
+for i in "${iterations[@]}"
+    do
+    for thread in "${threads[@]}";
+    do
+        ./"$FILE_ADD" --iterations="$i" --threads="$thread"
+        ./"$FILE_ADD" --iterations="$i" --threads="$thread" --yield
+    done
+done
+
 # yield with synchronizations
 threads=(2 4 8 12)
 iterations=10000

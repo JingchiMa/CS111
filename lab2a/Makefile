@@ -34,7 +34,7 @@ tests:
 	./tests.sh
 
 graphs:
-	./lab2_add.gp lab2_add.csv
+	./lab2_add.gp 
 
 clean: 
 	-rm -f *.o
@@ -42,6 +42,7 @@ clean:
 	-rm -f $(TARGET_2)
 	-rm -f *.tar.gz
 	-rm -f *.png
+	-rm -f *.csv
 
 dist:
 	tar cvzf lab2a-705027270.tar.gz $(DISTFILES)
