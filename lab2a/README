@@ -5,5 +5,51 @@ ID:705027270
 ## Questions:
 #### 2.1.1 causing conflicts:
 Why does it take many iterations before errors are seen?  
-Why does a significantly smaller number of iterations so seldom fail? 
+Why does a significantly smaller number of iterations so seldom fail?
+
+- Because when number of iterations is small, the chances of instruction-overlapping is relatively small. As a result, operations seem to still be executed in order. When number of iterations increases, the probability of thread overlapping increases, and thus easier to have errors.
+
+#### QUESTION 2.1.2 - cost of yielding:
+Why are the --yield runs so much slower?
+Where is the additional time going?
+Is it possible to get valid per-operation timings if we are using the --yield option?
+If so, explain how. If not, explain why not.
+
+- Yield can be slow because it requires more(extra) context switches, which can be expensive. The additional time for --yield is mainly on context switch.
+- If using --yield, it's not always possible to get the valid per-operation timings because the time for yield may drown the time for operation, and thus we do not know how much time an operation costs.
+
+#### QUESTION 2.1.3 - measurement errors:
+Why does the average cost per operation drop with increasing iterations?
+If the cost per iteration is a function of the number of iterations, how do we know how many iterations to run (or what the "correct" cost is)?
+
+- Because thread creation costs time. As number of iterations increase, the portion of thread-creation time decreases accordingly.
+- We can know the correct number of iterations to run by checking the plot. More specifically, when increasing the number of iterations will not significantly reduce the average time, we know that iteration is fine.
+
+#### QUESTION 2.1.4 - costs of serialization:
+Why do all of the options perform similarly for low numbers of threads?
+Why do the three protected operations slow down as the number of threads rises?
+
+- Because for small number of threads, the contention is not much, and locks will not block for too long.
+- As the thread number increases, contention increases as well. More threads have to wait / block to accquire the lock, and thus the slow-donw.
+
+#### QUESTION 2.2.1 - scalability of Mutex
+Compare the variation in time per mutex-protected operation vs the number of threads in Part-1 (adds) and Part-2 (sorted lists).
+Comment on the general shapes of the curves, and explain why they have this shape.
+Comment on the relative rates of increase and differences in the shapes of the curves, and offer an explanation for these differences.
+
+- It can be seen from the diagrams that the time per mutex-protected operation increases faster in Part-2 as the number of threads increase.
+- Generally, as the number of threads increase, the time per mutex-protected operation also increase. This is because more threads means more contention. Each thread needs to wait a longer time to acquire the locks.
+- As being said, the curve in Part-2 grows faster. This is because modifying list requires more time, and thus other threads have to wait longer.
+
+#### QUESTION 2.2.2 - scalability of spin locks
+Compare the variation in time per protected operation vs the number of threads for list operations protected by Mutex vs Spin locks. Comment on the general shapes of the curves, and explain why they have this shape.
+Comment on the relative rates of increase and differences in the shapes of the curves, and offer an explanation for these differences.
+
+- As number of threads increases, the time per protected opeartions also increases. This is because more threads means that more threads have to wait. And for a single thread, the chances it gets the lock decreases, and thus it needs to wait a longer time.
+- The curve for spin lock grows much faster than that of mutex. This is because in spin lock scenario, the thread will keep running even if it cannot acquire the lock. This is wasting CPU, and the thread that is holding the lock also cannot run during this time period.
+
+## File Descritions
+We use `tests.sh` to run tests for both add and list, and use `prepare_dependencies.sh` to check dependencies for `make dist`.
+
+
 
