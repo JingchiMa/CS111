@@ -9,7 +9,7 @@
 #	7. run time per operation (ns)
 #
 # output:
-# lab2b_1.png: throughput(total number of operations per second) for Mutex and Spin-lock
+# 	1. lab2b_1.png: throughput(total number of operations per second) for Mutex and Spin-lock
 
 # general plot parameters
 set terminal png
@@ -21,12 +21,12 @@ set xlabel "Threads"
 set logscale x 10
 set ylabel "Throughput (operations / ns)"
 set logscale y 10
-set output 'lab2_list-1.png'
+set output 'lab2b_1.png'
 
 # grep out only single threaded, un-protected, non-yield results
 plot \
-     "< cat lab2_mutex.csv" using ($2):(1000000000)/($7) \
-	title 'mutex' with linespoints lc rgb 'red', \
-     "< cat lab2_spinlock.csv" using ($2):(1000000000)/($7) \
-	title 'spinlock' with linespoints lc rgb 'green'
+     "< grep 'list-none-s' lab2b_list.csv" using ($2):(1000000000)/($7) \
+	title 'spinlock' with linespoints lc rgb 'red', \
+     "< grep 'list-none-m' lab2b_list.csv" using ($2):(1000000000)/($7) \
+	title 'mutex' with linespoints lc rgb 'green'
 
