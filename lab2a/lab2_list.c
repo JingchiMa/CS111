@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h>
 #include "SortedList.h"
 
 char* USAGE = "Usage: valid options are --threads and --iterations. Default values are 1\n";
@@ -84,6 +85,7 @@ int main(int argc, char * argv[]) {
 }
 
 void test(void) {
+    srand((unsigned int) time(NULL)); // setup random seed
     err_flag = 0;
     /* init list */
     list = (SortedList_t *) malloc(sizeof(SortedList_t));
@@ -100,7 +102,7 @@ void test(void) {
                 nodes[i][j] = (SortedListElement_t *) malloc(sizeof(SortedListElement_t));
                 // Need to make sure buffer is large enough, see https://stackoverflow.com/a/8257728/8159477 for more info.
                 char* key = malloc(10 * sizeof(char)); // also needs to create a buffer for each node!
-                sprintf(key, "%d-%d", i, j);
+                sprintf(key, "%d-%d", i, rand());
                 nodes[i][j]->key = key;
                 nodes[i][j]->prev = NULL;
                 nodes[i][j]->next = NULL;
