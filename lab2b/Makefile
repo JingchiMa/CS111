@@ -2,46 +2,43 @@
 ## EMAIL:majc@g.ucla.edu
 ## ID:705027270
 
-TARGET_1 = lab2_add
-TARGET_2 = lab2_list
+TARGET = lab2_list
 CC = gcc
-CFLAGS = -g -Wall -Wextra -lpthread -lrt
+CFLAGS = -g -Wall -Wextra -lpthread -lrt -lprofiler
 
 .PHONY: clean all default tests graphs
 
 default: all
-all: $(TARGET_1) $(TARGET_2);
+all: $(TARGET);
 
-SOURCES_1 = lab2_add.c # lab2a-add
-SOURCES_2 = $(filter-out lab2_add.c, $(wildcard *.c)) # lab2a-list
-OBJECTS_1 = $(patsubst %.c, %.o, $(SOURCES_1))
-OBJECTS_2 = $(patsubst %.c, %.o, $(SOURCES_2))
+SOURCES = $(wildcard *.c) 
+OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 HEADERS = $(wildcard *.h)
 
-DISTFILES = $(wildcard *.c) $(HEADERS)  Makefile README tests.sh prepare_dependencies.sh lab2_add.gp lab2_list.gp lab2_add.csv lab2_list.csv lab2_add-1.png lab2_add-2.png lab2_add-3.png lab2_add-4.png lab2_add-5.png lab2_list-1.png lab2_list-2.png lab2_list-3.png lab2_list-4.png
+DUMPFILE = ./raw.gperf
 
-# DISTFILES = $(wildcard *.c) $(HEADERS)  Makefile README tests.sh prepare_dependencies.sh lab2_add.gp lab2_list.gp $(wildcard *.png) $(wildcard *.csv)
+DISTFILES = $(wildcard *.c) $(HEADERS)  Makefile README tests.sh profile.sh profile.out
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(TARGET_1): $(OBJECTS_1)
-	$(CC) $(CFLAGS) $(OBJECTS_1) -o $@
-
-$(TARGET_2): $(OBJECTS_2)
-	$(CC) $(CFLAGS) $(OBJECTS_2) -o $@
+$(TARGET): $(OBJECTS)
+	$(CC) $(CFLAGS) $(OBJECTS) -o $@
 
 tests:
 	chmod +x tests.sh
 	-./tests.sh
 
 graphs:
-	./lab2_add.gp 
-	./lab2_list.gp
+	chmod +x lab2b_list.gp
+	./lab2b_list.gp
+
+profile:
+	chmod +x profile.sh
+	./profile.sh	
 clean: 
 	-rm -f *.o
-	-rm -f $(TARGET_1)
-	-rm -f $(TARGET_2)
+	-rm -f $(TARGET)
 	-rm -f *.tar.gz
 	#-rm -f *.png
 	# -rm -f *.csv
