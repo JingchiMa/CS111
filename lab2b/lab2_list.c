@@ -29,9 +29,11 @@ char*        yield_option = "none";
 volatile long global_waiting_lock = 0;
 
 struct timespec ts;
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER; // statically initialize a mutex
-volatile int spinlock = 0;
-SortedList_t *list;
+
+pthread_mutex_t *mutexs;    // pointer to the mutex array
+volatile int    *spinlocks; // pointer to the spinlock array
+SortedList_t    **lists;    // pointer to the list array
+int             num_lists = 1;
 
 void err_exit(char* err) {
     perror(err);
@@ -47,9 +49,16 @@ void *thread_func(void * vargs);
 void print_results(char* testname, struct timespec start_time);
 void test(void);
 
-void get_lock(long *waiting_time);
-void release_lock(void);
-void acquire_spin_lock(void);
+void get_lock(int list_index, long *waiting_time);
+void release_lock(int list_index);
+void acquire_spin_lock(volatile int *spinlock);
+int get_list_index(int thread_index);
+
+/* type of parameters to be passed into thread function */
+typedef struct {
+    int index;
+    SortedList_t **nodeptr_loc;
+} ThreadParam_t;
 
 int main(int argc, char * argv[]) {
     signal(SIGSEGV, segfault_handler);
@@ -58,10 +67,11 @@ int main(int argc, char * argv[]) {
         { "threads",    required_argument, NULL, 't' },
         { "yield",      required_argument, NULL, 'y' },
         { "sync",       required_argument, NULL, 's' },
+        { "lists",      required_argument, NULL, 'l' },
         { 0, 0, 0, 0 }
     };
     int c;
-    while ((c = getopt_long(argc, argv, "i:t:ys:", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "i:t:ys:l:", longopts, NULL)) != -1) {
         switch(c) {
             case 'i':
                 num_iters = atoi(optarg);
@@ -76,6 +86,12 @@ int main(int argc, char * argv[]) {
             case 's':
                 sync_flag = optarg[0];
                 break;
+            case 'l':
+                num_lists = atoi(optarg);
+                if (num_lists < 1) {
+                    err_exit("list number must be >= 1");
+                }
+                break;
             case '?':
                 err_exit(USAGE);
                 break;
@@ -88,11 +104,21 @@ int main(int argc, char * argv[]) {
 void test(void) {
     srand((unsigned int) time(NULL)); // setup random seed
     err_flag = 0;
-    /* init list */
-    list = (SortedList_t *) malloc(sizeof(SortedList_t));
-    list->key = NULL;
-    list->prev = NULL;
-    list->next = NULL;
+    /* init lists and locks */
+    lists = malloc(sizeof(SortedList_t*[num_lists]));
+    mutexs = malloc(sizeof(pthread_mutex_t[num_lists]));
+    spinlocks = malloc(sizeof(int[num_lists]));
+    {
+        int i;
+        for (i = 0; i < num_lists; i++) {
+            lists[i] = (SortedList_t *) malloc(sizeof(SortedList_t));
+            lists[i]->key = NULL;
+            lists[i]->prev = NULL;
+            lists[i]->next = NULL;
+            pthread_mutex_init(&mutexs[i], NULL);
+            spinlocks[i] = 0;
+        }
+    }
     
     /* prepare list elements */
     SortedListElement_t *(*nodes)[num_iters] = malloc(sizeof(SortedListElement_t*[num_threads][num_iters]));
@@ -101,7 +127,8 @@ void test(void) {
         for (i = 0; i < num_threads; i++) {
             for (j = 0; j < num_iters; j++) {
                 nodes[i][j] = (SortedListElement_t *) malloc(sizeof(SortedListElement_t));
-                // Need to make sure buffer is large enough, see https://stackoverflow.com/a/8257728/8159477 for more info.
+                // Need to make sure buffer is large enough, see
+                // https://stackoverflow.com/a/8257728/8159477 for more info.
                 char* key = malloc(10 * sizeof(char)); // also needs to create a buffer for each node!
                 sprintf(key, "%d-%d", i, rand());
                 nodes[i][j]->key = key;
@@ -117,7 +144,11 @@ void test(void) {
     {
         int i;
         for (i = 0; i < num_threads; i++) {
-            pthread_create(&thread_ids[i], NULL, thread_func, (void *) &nodes[i][0]);
+            ThreadParam_t *thread_param = malloc(sizeof(ThreadParam_t));
+            thread_param->index = i;
+            thread_param->nodeptr_loc = &nodes[i][0];
+            pthread_create(&thread_ids[i], NULL, thread_func, (void *) thread_param);
+            // NOTE: cannot free thread_param here!
         }
         for (i = 0; i < num_threads; i++) {
             pthread_join(thread_ids[i], NULL);
@@ -128,62 +159,72 @@ void test(void) {
         exit(2);
     }
     /* check the final length */
-    int len = SortedList_length(list);
-    if (len != 0) {
-        sync_err_exit("Sync Error: List length is not 0");
-    } else {
-        char testname[100];
-        if (sync_flag == 0) {
-            sprintf(testname, "list-%s-%s", yield_option, "none");
-        } else {
-            sprintf(testname, "list-%s-%c", yield_option, sync_flag);
+    {
+        int i;
+        for (i = 0; i < num_lists; i++) {
+            int len = SortedList_length(lists[i]);
+            if (len != 0) {
+                sync_err_exit("Sync Error: Sublist length is not 0");
+            }
         }
-        print_results(testname, start_time);
     }
+    /* all the lists have length 0 */
+    free(lists);
+    // TODO: destroy and free mutexes
+    // TODO: free spinlocks
+    // TODO: free list elements
+    char testname[100];
+    if (sync_flag == 0) {
+        sprintf(testname, "list-%s-%s", yield_option, "none");
+    } else {
+        sprintf(testname, "list-%s-%c", yield_option, sync_flag);
+    }
+    print_results(testname, start_time);
 }
 
 // pass in the address of the array (i.e. address of the first SortedListElement pointer)
 void *thread_func(void *vargs) {
+    ThreadParam_t *thread_param = (ThreadParam_t *) vargs;
+    int list_index = get_list_index(thread_param->index);
+    SortedList_t *list = lists[list_index];
     long time_waiting_lock = 0;
     /* if err_flag has been set, directly return */
     if (__sync_val_compare_and_swap(&err_flag, 0, 0) == 1) {
         return NULL;
     }
     int i;
-    SortedListElement_t **nodeptr_loc = (SortedListElement_t **) vargs;
-    
+    SortedListElement_t **nodeptr_loc = thread_param->nodeptr_loc;
     /* insert the elements */
     for (i = 0; i < num_iters; i++) {
-        get_lock(&time_waiting_lock);
+        get_lock(list_index, &time_waiting_lock);
         SortedList_insert(list, *nodeptr_loc);
-        release_lock();
+        release_lock(list_index);
         nodeptr_loc++;
     }
-    
     /* get the length */
-    get_lock(&time_waiting_lock);
+    get_lock(list_index, &time_waiting_lock);
     int len = SortedList_length(list);
-    release_lock();
+    release_lock(list_index);
     if (len == -1) {
         fprintf(stderr, "Sync Error: List length < 0\n");
         __sync_val_compare_and_swap(&err_flag, 0, 1);
         return NULL;
     }
     /* remove them all */
-    nodeptr_loc = (SortedListElement_t **) vargs;
+    nodeptr_loc = thread_param->nodeptr_loc;
     for (i = 0; i < num_iters; i++) {
-        get_lock(&time_waiting_lock);
+        get_lock(list_index, &time_waiting_lock);
         SortedListElement_t *cur = SortedList_lookup(list, (*nodeptr_loc)->key);
-        release_lock();
+        release_lock(list_index);
         if (cur == NULL) {
             /* error: cannot find the inserted key */
             fprintf(stderr, "Sync Error: Cannot find key %s which was inserted\n", (*nodeptr_loc)->key);
             __sync_val_compare_and_swap(&err_flag, 0, 1);
             return NULL;
         }
-        get_lock(&time_waiting_lock);
+        get_lock(list_index, &time_waiting_lock);
         SortedList_delete(cur);
-        release_lock();
+        release_lock(list_index);
         nodeptr_loc++;
     }
     /* add to global sum */
@@ -208,7 +249,6 @@ void set_opt_yield(char *yield_option) {
     }
 }
 void print_results(char* testname, struct timespec start_time) {
-    int num_lists = 1;
     long num_operations = num_threads * num_iters * 3;
     struct timespec cur_ts;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cur_ts);
@@ -223,25 +263,24 @@ void segfault_handler(int signum) {
         exit(2);
     }
 }
-void acquire_spin_lock() {
-    while (__sync_lock_test_and_set(&spinlock, 1)) {
-        while (spinlock);
+void acquire_spin_lock(volatile int *spinlock) {
+    while (__sync_lock_test_and_set(spinlock, 1)) {
+        while (*spinlock); // check if *spinlock is 1
     }
 }
 
 // setup lock based on sync_flag. May not get a real lock.
-// must call release_lock
+// must call release_lock with same list_index
 // int *waiting_time is the total waiting-lock-time for a single thread
-void get_lock(long *waiting_time) {
+void get_lock(int list_index, long *waiting_time) {
     struct timespec start_ts;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_ts);
     switch(sync_flag) {
         case 's':
-            /* spin lock */
-            acquire_spin_lock();
+            acquire_spin_lock(&spinlocks[list_index]);
             break;
         case 'm':
-            pthread_mutex_lock(&lock);
+            pthread_mutex_lock(&mutexs[list_index]);
             break;
         default:
             return; // no lock, no change to waiting_time
@@ -251,16 +290,21 @@ void get_lock(long *waiting_time) {
     *waiting_time += (cur_ts.tv_sec - start_ts.tv_sec) * 1000000000
                       + cur_ts.tv_nsec - start_ts.tv_nsec; // in nano seconds
 }
-void release_lock() {
+void release_lock(int list_index) {
     switch(sync_flag) {
         case 's':
-            __sync_lock_release(&spinlock);
+            __sync_lock_release(&spinlocks[list_index]);
             break;
         case 'm':
-            pthread_mutex_unlock(&lock);
+            pthread_mutex_unlock(&mutexs[list_index]);
             break;
     }
 }
 void get_testname(char testname[100], char *yield_option, char *sync_option) {
     sprintf(testname, "list-%s-%s", yield_option, sync_option);
+}
+
+// return the index of sublist the thread should be working on
+int get_list_index(int thread_index) {
+    return thread_index % num_lists;
 }
