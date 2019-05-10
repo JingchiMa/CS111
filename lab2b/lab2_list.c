@@ -161,11 +161,10 @@ void *thread_func(void *vargs) {
     }
     
     /* get the length */
-    // get_lock();
+    get_lock(&time_waiting_lock);
     int len = SortedList_length(list);
-    // release_lock();
+    release_lock();
     if (len == -1) {
-        /* error found when checking length */
         fprintf(stderr, "Sync Error: List length < 0\n");
         __sync_val_compare_and_swap(&err_flag, 0, 1);
         return NULL;
