@@ -18,3 +18,11 @@ do
         ./"$FILE_LIST" --iterations="$iteration" --threads="$thread" --sync="$sync" >> "$LOG_FILE_LIST"
     done
 done
+
+# timing mutex, used for lab2b_2.png
+threads=(1 2 4 8 12 16 24)
+iteration=1000
+for thread in "${threads[@]}"
+do
+    ./"$FILE_LIST" --iterations="$iteration" --threads="$thread" --sync=m >> "$LOG_FILE_LIST"
+done
