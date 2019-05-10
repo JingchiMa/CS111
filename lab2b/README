@@ -1,0 +1,11 @@
+NAME:Jingchi Ma
+EMAIL:majc@g.ucla.edu
+ID:705027270
+
+
+
+## File Descritions
+We use `tests.sh` to run tests for both add and list, and use `prepare_dependencies.sh` to check dependencies for `make dist`.
+
+
+
