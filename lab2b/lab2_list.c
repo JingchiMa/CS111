@@ -26,6 +26,7 @@ int          opt_yield   = 0;
 char         sync_flag   = 0;
 extern volatile int err_flag; // set to 1 if there's sync error in some thread
 char*        yield_option = "none";
+volatile long global_waiting_lock = 0;
 
 struct timespec ts;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER; // statically initialize a mutex
@@ -46,7 +47,7 @@ void *thread_func(void * vargs);
 void print_results(char* testname, struct timespec start_time);
 void test(void);
 
-void get_lock(void);
+void get_lock(long *waiting_time);
 void release_lock(void);
 void acquire_spin_lock(void);
 
@@ -143,6 +144,7 @@ void test(void) {
 
 // pass in the address of the array (i.e. address of the first SortedListElement pointer)
 void *thread_func(void *vargs) {
+    long time_waiting_lock = 0;
     /* if err_flag has been set, directly return */
     if (__sync_val_compare_and_swap(&err_flag, 0, 0) == 1) {
         return NULL;
@@ -152,7 +154,7 @@ void *thread_func(void *vargs) {
     
     /* insert the elements */
     for (i = 0; i < num_iters; i++) {
-        get_lock();
+        get_lock(&time_waiting_lock);
         SortedList_insert(list, *nodeptr_loc);
         release_lock();
         nodeptr_loc++;
@@ -171,7 +173,7 @@ void *thread_func(void *vargs) {
     /* remove them all */
     nodeptr_loc = (SortedListElement_t **) vargs;
     for (i = 0; i < num_iters; i++) {
-        get_lock();
+        get_lock(&time_waiting_lock);
         SortedListElement_t *cur = SortedList_lookup(list, (*nodeptr_loc)->key);
         release_lock();
         if (cur == NULL) {
@@ -180,11 +182,13 @@ void *thread_func(void *vargs) {
             __sync_val_compare_and_swap(&err_flag, 0, 1);
             return NULL;
         }
-        get_lock();
+        get_lock(&time_waiting_lock);
         SortedList_delete(cur);
         release_lock();
         nodeptr_loc++;
     }
+    /* add to global sum */
+    __atomic_fetch_add(&global_waiting_lock, time_waiting_lock, __ATOMIC_SEQ_CST);
     return NULL;
 }
 
@@ -210,9 +214,9 @@ void print_results(char* testname, struct timespec start_time) {
     struct timespec cur_ts;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cur_ts);
     long total_runtime = (cur_ts.tv_sec - start_time.tv_sec) * 1000000000
-                         + cur_ts.tv_nsec - start_time.tv_nsec; // in nano seconds
+    + cur_ts.tv_nsec - start_time.tv_nsec; // in nano seconds
     long avg_operation_time = total_runtime / num_operations;
-    printf("%s,%d,%d,%d,%ld,%ld,%ld\n", testname, num_threads, num_iters, num_lists, num_operations, total_runtime, avg_operation_time);
+    printf("%s,%d,%d,%d,%ld,%ld,%ld,%ld\n", testname, num_threads, num_iters, num_lists, num_operations, total_runtime, avg_operation_time, global_waiting_lock / num_operations);
 }
 void segfault_handler(int signum) {
     if (signum == SIGSEGV) {
@@ -228,7 +232,10 @@ void acquire_spin_lock() {
 
 // setup lock based on sync_flag. May not get a real lock.
 // must call release_lock
-void get_lock() {
+// int *waiting_time is the total waiting-lock-time for a single thread
+void get_lock(long *waiting_time) {
+    struct timespec start_ts;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_ts);
     switch(sync_flag) {
         case 's':
             /* spin lock */
@@ -237,7 +244,13 @@ void get_lock() {
         case 'm':
             pthread_mutex_lock(&lock);
             break;
+        default:
+            return; // no lock, no change to waiting_time
     }
+    struct timespec cur_ts;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cur_ts);
+    *waiting_time += (cur_ts.tv_sec - start_ts.tv_sec) * 1000000000
+                      + cur_ts.tv_nsec - start_ts.tv_nsec; // in nano seconds
 }
 void release_lock() {
     switch(sync_flag) {
