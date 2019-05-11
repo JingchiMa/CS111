@@ -140,7 +140,7 @@ void test(void) {
     /* prepare and start threads */
     pthread_t thread_ids[num_threads];
     struct timespec start_time;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
     {
         int i;
         for (i = 0; i < num_threads; i++) {
@@ -251,7 +251,7 @@ void set_opt_yield(char *yield_option) {
 void print_results(char* testname, struct timespec start_time) {
     long num_operations = num_threads * num_iters * 3;
     struct timespec cur_ts;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cur_ts);
+    clock_gettime(CLOCK_MONOTONIC, &cur_ts);
     long total_runtime = (cur_ts.tv_sec - start_time.tv_sec) * 1000000000
     + cur_ts.tv_nsec - start_time.tv_nsec; // in nano seconds
     long avg_operation_time = total_runtime / num_operations;
@@ -274,7 +274,7 @@ void acquire_spin_lock(volatile int *spinlock) {
 // int *waiting_time is the total waiting-lock-time for a single thread
 void get_lock(int list_index, long *waiting_time) {
     struct timespec start_ts;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_ts);
+    clock_gettime(CLOCK_MONOTONIC, &start_ts);
     switch(sync_flag) {
         case 's':
             acquire_spin_lock(&spinlocks[list_index]);
@@ -286,7 +286,7 @@ void get_lock(int list_index, long *waiting_time) {
             return; // no lock, no change to waiting_time
     }
     struct timespec cur_ts;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cur_ts);
+    clock_gettime(CLOCK_MONOTONIC, &cur_ts);
     *waiting_time += (cur_ts.tv_sec - start_ts.tv_sec) * 1000000000
                       + cur_ts.tv_nsec - start_ts.tv_nsec; // in nano seconds
 }

@@ -17,7 +17,7 @@ HEADERS = $(wildcard *.h)
 
 DUMPFILE = ./raw.gperf
 
-DISTFILES = $(wildcard *.c) $(HEADERS)  Makefile README tests.sh profile.sh profile.out
+DISTFILES = $(wildcard *.c) $(HEADERS)  Makefile README tests.sh profile.sh profile.out lab2b_list.gp
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -29,7 +29,7 @@ tests:
 	chmod +x tests.sh
 	-./tests.sh
 
-graphs:
+graphs: 
 	chmod +x lab2b_list.gp
 	./lab2b_list.gp
 
@@ -40,10 +40,6 @@ clean:
 	-rm -f *.o
 	-rm -f $(TARGET)
 	-rm -f *.tar.gz
-	#-rm -f *.png
-	# -rm -f *.csv
 
-dist:
-	chmod +x prepare_dependencies.sh
-	-./prepare_dependencies.sh # > /dev/null 2>&1 
-	tar cvzf lab2a-705027270.tar.gz $(DISTFILES)
+dist: all tests graphs profile 
+	tar cvzf lab2b-705027270.tar.gz $(DISTFILES) *.png *.csv
