@@ -2,7 +2,43 @@ NAME:Jingchi Ma
 EMAIL:majc@g.ucla.edu
 ID:705027270
 
+## Questions
 
+#### QUESTION 2.3.1 - Cycles in the basic list implementation:
+Where do you believe most of the cycles are spent in the 1 and 2- thread list tests?
+Why do you believe these to be the most expensive parts of the code?
+Where do you believe most of the time/cycles are being spent in the high-thread spin-lock tests?
+Where do you believe most of the time/cycles are being spent in the high-thread mutex tests?
+
+- In the case of small number of threads, most cycles are spent are instructions (e.g. insertion, deletion, and search).
+- The operations on linked list takes O(n) time. When contention is not too much, the time spent on opeartions themselves will be more than that spent on context switching.
+- When there are many threads, and spin locks are used, most of the time are spent on "spinning", i.e. busy waiting for the spin locks.
+- For mutex, most time are spent on context switch. Although CPU cycles are not wasted that much as that in spin lock case, switching among different threads are still taking a lot of CPU cycles.
+
+#### QUESTION 2.3.2 - Execution Profiling:
+Where (what lines of code) are consuming most of the cycles when the spin-lock version of the list exerciser is run with a large number of threads?
+Why does this operation become so expensive with large numbers of threads?
+- The codes where each thread are trying to get spin locks are consuming most of the CPU cycles.
+- When contention increases, each thread has less chance of getting the lock. Therefore, more and more time are being spent on busy waiting, not on doing useful operations.
+
+#### QUESTION 2.3.3 - Mutex Wait Time:
+Look at the average time per operation (vs. # threads) and the average wait-for-mutex time (vs. #threads).
+Why does the average lock-wait time rise so dramatically with the number of contending threads?
+Why does the completion time per operation rise (less dramatically) with the number of contending threads?
+How is it possible for the wait time per operation to go up faster (or higher) than the completion time per operation?
+
+- As the number of threads increases, contention also increases. Since each time there is only one thread which can acquire the lock, the chance of getting the lock reduces and thus longer waiting time.
+- This is because each thread is spending more time on waiting. The more waiting time arises from two aspects, one is less chance of getting lock, the other is more context switches.
+- Because if there's no contention, there's no wait time, but the completion time for each operation will not be 0. As contention increases, wait time increases accordinly, but only a part of operation completion time increases.
+
+#### QUESTION 2.3.4 - Performance of Partitioned Lists
+Explain the change in performance of the synchronized methods as a function of the number of lists.
+Should the throughput continue increasing as the number of lists is further increased? If not, explain why not.
+It seems reasonable to suggest the throughput of an N-way partitioned list should be equivalent to the throughput of a single list with fewer (1/N) threads. Does this appear to be true in the above curves? If not, explain why not.
+
+- More lists mean (1) less contention on each list (2) shorter length for each list. Contention decreases so the time waiting for lock decreases, and shorter list length means faster list operations. As a result, performance increases as the number of list goes up.
+- Not necessarily. When there are more lists than threads, each list actually has no contention already. In this case further increasing list number will not help much.
+- It's reasonalbe but not necessarily true. In some regions this can be observed in the diagrams. But it is not a general rule. Consider this example, where each sublist only has one element. So the N-way partitioned list can finish operation in O(1) time. But the single list still needs O(N) time to finish.
 
 ## File Descritions
 We use `tests.sh` to run tests for both add and list, and use `prepare_dependencies.sh` to check dependencies for `make dist`.
