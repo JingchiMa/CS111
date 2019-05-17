@@ -114,6 +114,7 @@ void handle_log(const char* cmd) {
 }
 
 // returns if the set period function succeeds or not
+// cmd termindated by '\n'
 int setPeriod(const char* cmd) {
     char str[] = "PERIOD=";
     int i = 0;
@@ -127,7 +128,7 @@ int setPeriod(const char* cmd) {
     }
     // here we are sure that cmd has "PERIOD=" as prefix
     int input_period = 0;
-    while (cmd[i] != '\0') {
+    while (cmd[i] != '\n') {
         if (!isdigit(cmd[i])) {
             return 0;
         }
