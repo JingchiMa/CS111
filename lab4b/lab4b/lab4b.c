@@ -27,6 +27,7 @@ FILE * log_file = NULL;
 int period = 1;
 char unit = 'F';
 int paused = 0;
+int dummy = 0;
 mraa_aio_context temp_sensor;
 mraa_gpio_context button;
 
@@ -35,13 +36,53 @@ void err_exit(char* err) {
     exit(1);
 }
 void cleanup() {
+    if (dummy) {
+        return;
+    }
     mraa_aio_close(temp_sensor);
     mraa_gpio_close(button);
     mraa_deinit();
 }
 
+int mraa_aio_read_wrapper() {
+    if (dummy) {
+        return 100;
+    } else {
+        return mraa_aio_read(temp_sensor);
+    }
+}
+int mraa_gpio_read_wrapper() {
+    if (dummy) {
+        return 0;
+    } else {
+        return mraa_gpio_read(button);
+    }
+}
+int mraa_aio_init_wrapper() {
+    if (dummy) {
+        return 1;
+    } else {
+        return mraa_aio_init(1);
+    }
+}
+int mraa_gpio_init_wrapper() {
+    if (dummy) {
+        return 1;
+    } else {
+        return mraa_gpio_init(62);
+    }
+}
+void mraa_gpio_dir_wrapper() {
+    if (dummy) {
+        return;
+    } else {
+        mraa_gpio_dir(button, MRAA_GPIO_IN);
+    }
+}
+
+
 double get_temperature() {
-    int raw = mraa_aio_read(temp_sensor);
+    int raw = mraa_aio_read_wrapper();
     double temperature = 1023.0 / (raw * 1.0) - 1;
     temperature *= R0;
     double temp_C = 1.0 / (log(temperature / R0) / B + 1 / 298.15) - 273.15;
@@ -122,15 +163,15 @@ void handle_command(const char* cmd) {
 }
 
 void init_devices() {
-    temp_sensor = mraa_aio_init(1);
-    if(temp_sensor == NULL){
-        err_exit("temperature sensor not initialized")
+    temp_sensor = mraa_aio_init_wrapper();
+    if (temp_sensor == NULL) {
+        err_exit("temperature sensor not initialized");
     }
-    button = mraa_gpio_init(62);
-    if(button == NULL) {
-        err_exit("button not initialized")
+    button = mraa_gpio_init_wrapper();
+    if (button == NULL) {
+        err_exit("button not initialized");
     }
-    mraa_gpio_dir(button, MRAA_GPIO_IN);
+    mraa_gpio_dir_wrapper();
 }
 
 void log_temperature(double temp) {
@@ -150,11 +191,15 @@ int main(int argc, char **argv) {
         {"period", required_argument, NULL, 'p'},
         {"scale",  required_argument, NULL, 's'},
         {"log",    required_argument, NULL, 'l'},
+        {"dummy",  no_argument,       NULL, 'd'},
         {0,        0,           0,            0}
     };
     int c;
     while ((c = getopt_long(argc, argv, "p:s:l:", longopts, NULL)) != -1) {
         switch(c) {
+            case 'd':
+                dummy = 1;
+                break;
             case 'p':
                 period = atoi(optarg);
                 break;
@@ -195,7 +240,7 @@ int main(int argc, char **argv) {
     next = cur + period;
     
     while (1) {
-        if (mraa_gpio_read(button)) {
+        if (mraa_gpio_read_wrapper()) {
             board_shutdown();
         }
         time(&cur);
