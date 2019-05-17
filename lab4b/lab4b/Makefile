@@ -4,7 +4,7 @@
 
 TARGET = lab4b
 CC = gcc
-CFLAGS = -g -Wall -Wextra 
+CFLAGS = -g -Wall -Wextra -lmraa -lm 
 
 .PHONY: clean all default
 

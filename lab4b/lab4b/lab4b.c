@@ -58,14 +58,14 @@ int mraa_gpio_read_wrapper() {
         return mraa_gpio_read(button);
     }
 }
-int mraa_aio_init_wrapper() {
+mraa_aio_context mraa_aio_init_wrapper() {
     if (dummy) {
         return 1;
     } else {
         return mraa_aio_init(1);
     }
 }
-int mraa_gpio_init_wrapper() {
+mraa_gpio_context mraa_gpio_init_wrapper() {
     if (dummy) {
         return 1;
     } else {
