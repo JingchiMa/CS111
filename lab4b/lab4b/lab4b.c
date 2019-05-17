@@ -143,7 +143,8 @@ void handle_command(const char* cmd) {
     if (cmd == NULL) {
         err_exit("NULL command received");
     }
-    if (strcmp(cmd, "OFF\n") == 0){
+    if (strcmp(cmd, "OFF\n") == 0) {
+        print_command(cmd);
         board_shutdown();
     } else if (strcmp(cmd, "STOP\n") == 0) {
         paused = 1;
@@ -264,7 +265,7 @@ int main(int argc, char **argv) {
             // note that command length cannot exceed BUFSIZE.
             for (i = 0; i < num && cmdIdx < BUFSIZE; i++) {
                 command[cmdIdx] = buf[i];
-                if (command[i] == '\n') {
+                if (command[cmdIdx] == '\n') {
                     handle_command(command);
                     /* reset command buffer */
                     cmdIdx = 0;
@@ -275,6 +276,7 @@ int main(int argc, char **argv) {
             }
             if (cmdIdx >= BUFSIZE) {
                 cmdIdx = 0; // discard input in command buf because command length exceeds BUFSIZE
+                memset(command, 0, BUFSIZE);
             }
         }
     }
