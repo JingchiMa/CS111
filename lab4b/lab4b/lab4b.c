@@ -60,14 +60,14 @@ int mraa_gpio_read_wrapper() {
 }
 mraa_aio_context mraa_aio_init_wrapper() {
     if (dummy) {
-        return 1;
+        return (mraa_aio_context) 1;
     } else {
         return mraa_aio_init(1);
     }
 }
 mraa_gpio_context mraa_gpio_init_wrapper() {
     if (dummy) {
-        return 1;
+        return (mraa_gpio_context) 1;
     } else {
         return mraa_gpio_init(62);
     }
@@ -132,6 +132,7 @@ int setPeriod(const char* cmd) {
             return 0;
         }
         input_period = input_period * 10 + (cmd[i] - '0');
+        i++;
     }
     period = input_period;
     return 1;
