@@ -91,7 +91,7 @@ double get_temperature() {
 
 void print_command(const char* cmd) {
     if (log_flag) {
-        fprintf(log_file, "%s\n", cmd);
+        fprintf(log_file, "%s", cmd); // cmd contains '\n'
     }
 }
 
