@@ -69,7 +69,7 @@ mraa_gpio_context mraa_gpio_init_wrapper() {
     if (dummy) {
         return (mraa_gpio_context) 1;
     } else {
-        return mraa_gpio_init(62);
+        return mraa_gpio_init(60);
     }
 }
 void mraa_gpio_dir_wrapper() {
