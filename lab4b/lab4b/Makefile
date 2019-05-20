@@ -29,7 +29,8 @@ clean:
 	-rm -f *.tar.gz
 
 check:
-	
+	chmod +x ./check.sh
+	-./check.sh	
 
 dist:
 	tar cvzf lab4b-705027270.tar.gz $(DISTFILES)

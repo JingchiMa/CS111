@@ -1,3 +1,6 @@
 NAME:Jingchi Ma
 EMAIL:majc@g.ucla.edu
 ID:705027270
+
+## File Descriptions
+check.sh is the test script for basic functionalities. lab4b.c is the source code.
