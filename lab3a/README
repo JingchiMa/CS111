@@ -1,0 +1,7 @@
+NAME:Jingchi Ma
+EMAIL:majc@g.ucla.edu
+ID:705027270
+
+## File Descriptions
+- main.c is the source code.
+- ext2_fs.h is the (simplified) header file for linux file system.
