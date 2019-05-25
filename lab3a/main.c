@@ -103,8 +103,8 @@ void group_summary() {
     /* First needs to get number of group. Should be one in this project */
     sb.n_group = sb.n_blocks / sb.blocks_per_group + 1;
     groups = malloc(sizeof(group_info) * sb.n_group);
-    int i;
-    int offset = BLOCK_SIZE * 2;
+    __u32 i;
+    __u32 offset = BLOCK_SIZE * 2;
     group_info* cur_group = groups;
     for (i = 0; i < sb.n_group; i++) {
         /* for each block group */
@@ -159,18 +159,18 @@ void group_summary() {
 }
 
 void free_block_entries_summary() {
-    int i;
+    __u32 i;
     for (i = 0; i < sb.n_group; i++) {
         __u32 bitmap_bn = groups[i].block_bitmap;
         char *bitmap = malloc(BLOCK_SIZE);
         if (pread(fs_fd, bitmap, BLOCK_SIZE, BLOCK_SIZE * bitmap_bn) == -1) {
             err_exit(2, "ERROR in free block entries: read block bitmap failed");
         }
-        int j;
-        int block_number = 1; // block number starts with 1
+        __u32 j;
+        __u32 block_number = 1; // block number starts with 1
         /* be sure to check if block_number <= total number of blocks in this group */
         for (j = 0; j < BLOCK_SIZE && block_number <= groups[i].n_blocks; j++) {
-            int k;
+            __u32 k;
             for (k = 0; k < 8 && block_number <= groups[i].n_blocks; k++, block_number++) {
                 char cur = (bitmap[j] >> k) & 0x01;
                 if (cur == 0) {
@@ -183,17 +183,17 @@ void free_block_entries_summary() {
 }
 
 void free_inode_entries_summary() {
-    int i;
+    __u32 i;
     for (i = 0; i < sb.n_group; i++) {
         __u32 bitmap_bn = groups[i].inode_bitmap;
         char *bitmap = malloc(BLOCK_SIZE);
         if (pread(fs_fd, bitmap, BLOCK_SIZE, BLOCK_SIZE * bitmap_bn) == -1) {
             err_exit(2, "ERROR in free_inode_entries_summary: read inode bitmap failed");
         }
-        int j;
-        int block_number = 1;
+        __u32 j;
+        __u32 block_number = 1;
         for (j = 0; j < BLOCK_SIZE && block_number <= groups[i].n_blocks; j++) {
-            int k;
+            __u32 k;
             for (k = 0; k < 8 && block_number <= groups[i].n_blocks; k++, block_number++) {
                 char cur = (bitmap[j] >> k) & 0x01;
                 if (cur == 0) {
@@ -218,7 +218,7 @@ char get_file_type(struct ext2_inode *inode) {
             return '?';
     }
 }
-void get_gmt(time_t ts, char* time_string, int size) {
+void get_gmt(time_t ts, char* time_string, __u32 size) {
     struct tm *gmt;
     gmt = gmtime(&ts);
     strftime(time_string, size, "%m/%d/%y %H:%M:%S", gmt);
@@ -226,11 +226,11 @@ void get_gmt(time_t ts, char* time_string, int size) {
 // ----------------------------------------------------------------
 
 void inode_summary() {
-    int group_idx;
+    __u32 group_idx;
     for (group_idx = 0; group_idx < sb.n_group; group_idx++) {
         __u32 first_inode_bn = groups[group_idx].first_inode;
-        int offset = first_inode_bn * BLOCK_SIZE;
-        int i; // i is the inode number
+        __u32 offset = first_inode_bn * BLOCK_SIZE;
+        __u32 i; // i is the inode number
         for (i = 1; i <= groups[group_idx].n_inodes;
              i++, offset += sizeof(struct ext2_inode)) {
 
@@ -292,8 +292,8 @@ void inode_summary() {
 }
 
 // ------- helper fields for indirect access ------------------
-const int N_BLOCK = BLOCK_SIZE / sizeof(__u32);
-const int indirect_offsets[] = {1, N_BLOCK, N_BLOCK * N_BLOCK};
+const __u32 N_BLOCK = BLOCK_SIZE / sizeof(__u32);
+const __u32 indirect_offsets[] = {1, N_BLOCK, N_BLOCK * N_BLOCK};
 // ------------------------------------------------------------
 
 
@@ -305,8 +305,8 @@ const int indirect_offsets[] = {1, N_BLOCK, N_BLOCK * N_BLOCK};
  The current block must be a data block.
  This function will scan all possible directory entries and print them out.
  */
-void directory_entries_in_block(__u32 block_num, __u32 *logical_offset, int parent_inode_num) {
-    int start = 0; // start of next directory entry
+void directory_entries_in_block(__u32 block_num, __u32 *logical_offset, __u32 parent_inode_num) {
+    __u32 start = 0; // start of next directory entry
     __u32 base_offset = block_num * BLOCK_SIZE;
     while (start < BLOCK_SIZE) {
         // cannot have directory entry spanning data blocks, and if there's no enough space,
@@ -341,8 +341,8 @@ void directory_entries_in_block(__u32 block_num, __u32 *logical_offset, int pare
  @inode: the inode owning the block.
  This function will print results for all non-zero pointers recursively.
  */
-void process_block_directory(int level, __u32 block_num,
-                             __u32 *logical_offset, int inode_num) {
+void process_block_directory(__u32 level, __u32 block_num,
+                             __u32 *logical_offset, __u32 inode_num) {
     // if level == 0, then this is data block, print out entry results
     // otherwise, update offset and level and continue recursion.
     if (level == 0) {
@@ -354,7 +354,7 @@ void process_block_directory(int level, __u32 block_num,
     if (pread(fs_fd, cur_addresses, BLOCK_SIZE, block_num * BLOCK_SIZE) == -1) {
         err_exit(2, "ERROR in process_indirect_block: loading current block failed");
     }
-    int addr_idx = 0;
+    __u32 addr_idx = 0;
     for (; addr_idx < N_BLOCK; addr_idx++) {
         __u32 next_level_bn = cur_addresses[addr_idx];
         if (next_level_bn == 0) {
@@ -369,11 +369,11 @@ void process_block_directory(int level, __u32 block_num,
 // ----------------------------------------------------------------
 
 void directory_entries_summary() {
-    int group_idx;
+    __u32 group_idx;
     for (group_idx = 0; group_idx < sb.n_group; group_idx++) {
-        int first_inode_bn = groups[group_idx].first_inode;
-        int offset = first_inode_bn * BLOCK_SIZE;
-        int inodenum = 1;
+        __u32 first_inode_bn = groups[group_idx].first_inode;
+        __u32 offset = first_inode_bn * BLOCK_SIZE;
+        __u32 inodenum = 1;
         for (; inodenum <= groups[group_idx].n_inodes;
              inodenum++, offset += sizeof(struct ext2_inode)) {
             struct ext2_inode cur_inode;
@@ -382,9 +382,9 @@ void directory_entries_summary() {
             }
             if (cur_inode.i_mode & EXT2_S_IFDIR) {
                 /* is directory */
-                int k; // index to scan the referencing blocks
+                __u32 k; // index to scan the referencing blocks
                 __u32 logical_offset = 0;
-                int level = 0;
+                __u32 level = 0;
                 for (k = 0; k < EXT2_N_BLOCKS; k++) {
                     if (k < EXT2_NDIR_BLOCKS) {
                         /* direct blocks */
@@ -415,12 +415,12 @@ void directory_entries_summary() {
  @inode: the inode owning the block.
  This function will print results for all non-zero pointers recursively.
  */
-void process_indirect_block(int level, __u32 block_num, __u32 logical_offset, int inode_num) {
+void process_indirect_block(__u32 level, __u32 block_num, __u32 logical_offset, __u32 inode_num) {
     __u32 cur_addresses[N_BLOCK];
     if (pread(fs_fd, cur_addresses, BLOCK_SIZE, block_num * BLOCK_SIZE) == -1) {
         err_exit(2, "ERROR in process_indirect_block: loading current block failed");
     }
-    int address_idx;
+    __u32 address_idx;
     for (address_idx = 0; address_idx < N_BLOCK; address_idx++) {
         __u32 next_level_bn = cur_addresses[address_idx];
         if (next_level_bn == 0) {
@@ -445,11 +445,11 @@ void process_indirect_block(int level, __u32 block_num, __u32 logical_offset, in
 // -----------------------------------------------------------------------------
 
 void indirect_block_references_summary() {
-    int group_idx;
+    __u32 group_idx;
     for (group_idx = 0; group_idx < sb.n_group; group_idx++) {
         __u32 first_inode_bn = groups[group_idx].first_inode;
-        int inode_num = 1;
-        int offset = first_inode_bn * BLOCK_SIZE;
+        __u32 inode_num = 1;
+        __u32 offset = first_inode_bn * BLOCK_SIZE;
         for (; inode_num <= groups[group_idx].n_inodes;
              inode_num++, offset += sizeof(struct ext2_inode)) {
             /* iterate through inodes */
@@ -475,6 +475,9 @@ void indirect_block_references_summary() {
 
 int main(int argc, const char * argv[]) {
     // insert code here...
+    if (argc != 2) {
+        err_exit(1, "MUST SPEFICY FILE SYSTEM IMAGE");
+    }
     const char* fileSystem = argv[1];
     //  In this project, we will provide EXT2 file system images in ordinary files
     if((fs_fd = open(fileSystem, O_RDONLY)) == -1) {
