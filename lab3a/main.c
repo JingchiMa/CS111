@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string.h>
 #include "ext2_fs.h"
 
 #define BLOCK_SIZE EXT2_MIN_BLOCK_SIZE
@@ -316,6 +317,10 @@ void directory_entries_in_block(__u32 block_num, __u32 *logical_offset, __u32 pa
         if (pread(fs_fd, &dir_entry, sizeof(dir_entry), base_offset + start) == -1) {
             err_exit(2, "ERROR in directory_entry_results: loading directory entry failed");
         }
+        /* copy name to buffer to make sure it's null terminated */
+        char name_buffer[dir_entry.name_len + 1];
+        memcpy(name_buffer, dir_entry.name, dir_entry.name_len);
+        name_buffer[dir_entry.name_len] = 0;
         if (dir_entry.inode != 0) {
             fprintf(stdout, "%s,%d,%u,%u,%u,%u,'%s'\n",
                     "DIRENT",
@@ -324,7 +329,7 @@ void directory_entries_in_block(__u32 block_num, __u32 *logical_offset, __u32 pa
                     dir_entry.inode,
                     dir_entry.rec_len,
                     dir_entry.name_len,
-                    dir_entry.name
+                    name_buffer
                     );
         } else {
             break; // no directory entry in this block
@@ -362,7 +367,7 @@ void process_block_directory(__u32 level, __u32 block_num,
             continue;
         }
         process_block_directory(level - 1, next_level_bn,
-                                logical_offset + addr_idx * indirect_offsets[level-1],
+                                logical_offset,
                                 inode_num);
     }
 }
@@ -386,6 +391,9 @@ void directory_entries_summary() {
                 __u32 logical_offset = 0;
                 __u32 level = 0;
                 for (k = 0; k < EXT2_N_BLOCKS; k++) {
+                    if (cur_inode.i_block[k] == 0) {
+                        continue; // no block
+                    }
                     if (k < EXT2_NDIR_BLOCKS) {
                         /* direct blocks */
                         level = 0;
